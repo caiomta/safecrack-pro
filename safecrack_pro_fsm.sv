@@ -12,11 +12,8 @@ module safecrack_pro_fsm #(
         (CLK_FREQ >= 1000) ? ((CLK_FREQ / 1000) * 15) : 2
     );
 
-    logic [2:0] btn_sync0, btn_sync1; // sincronização para evitar metaestabilidade
-    logic btn_active; 
-    logic btn_stable;
-    logic btn_prev;
-    logic btn_pulse;
+    logic [2:0] btn_sync0, btn_sync1, // sincronização para evitar metaestabilidade
+                btn_active, btn_stable, btn_prev, btn_pulse;
     logic [$clog2(DEB_CYCLES)-1:0] deb_cnt [2:0];
 
     @always_ff @(posedge clk) begin
