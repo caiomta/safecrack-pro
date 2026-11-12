@@ -1,5 +1,6 @@
 module safecrack_pro_fsm #(
-    parameter int CLK_FREQ = 50_000_000;
+    parameter int CLK_FREQ = 50_000_000,
+    parameter int DEB_MS = 20
 ) (
     input logic clk, reset,
     input logic [2:0] btn, // botões de escolha e confirmação
@@ -8,9 +9,8 @@ module safecrack_pro_fsm #(
                                      // sendo modificado no momento
     output logic unlocked, incorrect // leds informativos de estado
 );
-    localparam int DEB_CYCLES = (
-        (CLK_FREQ >= 1000) ? ((CLK_FREQ / 1000) * 15) : 2
-    );
+    // clocks necessários para contar DEB_MS
+    localparam int DEB_CYCLES = (CLK_FREQ >= 1000) ? (DEB_MS * CLK_FREQ / 1000) : 2;
 
     logic [2:0] btn_sync0, btn_sync1, // sincronização para evitar metaestabilidade
                 btn_active, btn_stable, btn_prev, btn_pulse;
