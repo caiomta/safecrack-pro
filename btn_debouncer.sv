@@ -1,6 +1,6 @@
 module btn_debouncer #(
-    parameter int CLK_FREQ = 50_000_000,
-    parameter int DEB_MS = 20
+    parameter int CLK_FREQ,
+    parameter int DEB_MS
 ) (
     input logic clk,
     input logic [3:0] btn, 
