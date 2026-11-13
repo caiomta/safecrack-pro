@@ -1,5 +1,5 @@
 module input_handler #(
-    parameter int CLK_FREQ = 50_000_000
+    parameter int CLK_FREQ
 ) (
     input logic clk, rstn, prev_btn, next_btn, confirm_btn,
     output logic [3:0] digit_val,
