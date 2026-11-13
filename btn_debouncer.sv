@@ -2,9 +2,7 @@ module btn_debouncer #(
     parameter int CLK_FREQ,
     parameter int DEB_MS = 20
 ) (
-    input logic clk,
-    input logic rstn,
-    input logic btn, 
+    input logic clk, rstn, btn,
     output logic btn_pulse 
 );
     localparam int DEB_CYCLES = (CLK_FREQ >= 1000) ? (DEB_MS * CLK_FREQ / 1000) : 2;  // ciclos de clock para completar DEB_MS
