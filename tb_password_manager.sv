@@ -83,7 +83,7 @@ initial begin
 
     #10;
     if (stored_pass == '{4'd9, 4'd8, 4'd7, 4'd6})
-        $display("-> Sucesso: Nova senha 9876 salva na memoria");
+        $display("-> Sucesso: Nova senha 9876 salva na memoria!");
     else
         $error("-> ERRO: Falha ao gravar nova senha!");
     
@@ -107,7 +107,7 @@ initial begin
     if (match_pass == 1)
         $display("-> SUCESSO: Nova senha 9876 ACEITA com sucesso!");
     else 
-        $error("-> ERRO: Nova senha não foi aceita.");
+        $error("-> ERRO: Nova senha não foi aceita!");
     
     $display(" OS TESTES FORAM CONCLUIDOS! ");
     $finish;
