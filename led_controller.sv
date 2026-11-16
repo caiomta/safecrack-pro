@@ -1,8 +1,4 @@
-module led_controller #(
-    parameter int CLK_FREQ = 50_000_000) 
-(
-    input  logic clk,
-    input  logic reset,
+module led_controller (
     input  logic unlocked,   
     input  logic incorrect,  
     input  logic edit_mode,
