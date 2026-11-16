@@ -2,7 +2,7 @@ module display_driver (
     input  logic [3:0][3:0] digits,
     input  logic [1:0] selected_digit,
     output logic [3:0][6:0] digit_displays,
-    output logic [6:0] active_digit
+    output logic [6:0] active_display
 );
     function automatic logic [6:0] decode(input logic [3:0] value);
         case (value)
@@ -23,6 +23,6 @@ module display_driver (
     always_comb begin
         for (int i = 0; i < 4; i++)
             digit_displays[i] = decode(digits[i]);
-        active_digit = decode({2'b00, selected_digit} + 4'd1);
+        active_display = decode({2'b00, selected_digit} + 4'd1);
     end
 endmodule
