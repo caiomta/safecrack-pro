@@ -10,8 +10,8 @@ module timer_counter #(
 
     always_ff @( posedge clk or negedge rstn ) begin 
 	     if (!rstn) begin
-		      cnt <= 0;
-				timer_done <= '0;
+            cnt <= 0;
+            timer_done <= '0;
 		  end else if (!timer_enable) begin  // reinicialização ao resetar ou desativar timer
             cnt <= 0;
             timer_done <= '0;
