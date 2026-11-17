@@ -1,78 +1,86 @@
-'timescale 1ns/1ps
+`timescale 1ns/1ps
 
-module tb_safecrack_pro_top();
-    // sinais de entrada para a placa
-    logic CLOCK_50;
-    logic [3:0] KEY;    
+module safecrack_pro_top_tb;
+    localparam int CLK_FREQ = 500;
+    localparam time CLK_PERIOD = 10ns;
 
-    // sinais de saída da placa (visuais)
-    logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4;
-    logic [8:0] LEDG;
-    logic [17:0] LEDR;
+    logic clk;
+    logic [3:0] keys;
+    logic [3:0][6:0] digit_displays;
+    logic [6:0] active_display;
+    logic [8:0] ledg;
+    logic [17:0] ledr;
 
-    // instanciando o top level
-    safecrack_pro_top dut (.*);
+    safecrack_pro_top #(
+        .CLK_FREQ(CLK_FREQ)
+    ) dut (.*);
 
-    // geradorr de clock (periodo de 20ns, frequência de 50MHz)
-    initial CLOCK_50 = 0;
-    always #10 CLOCK_50 = ~CLOCK_50;
+    initial clk = 0;
+    always #(CLK_PERIOD / 2) clk = ~clk;
 
-    // simular o dedo do usuário apertando um botão
-    task apertar_botao(input int numero_botao);
-        KEY[numero_botao] = 0; // botão pressionado (ativo baixo)
-        #40;                 
-        KEY[numero_botao] = 1; // solta
-        #40;                
+    // keys[0] = rstn | keys[1] = confirm | keys[2] = inc | keys[3] = dec
+    task automatic press_key(input int idx);
+        keys[idx] = 1'b0;
+        repeat (6) @(posedge clk);
+        keys[idx] = 1'b1;
+        repeat (6) @(posedge clk);
+    endtask
+
+    task automatic enter_code(input logic [3:0][3:0] code);
+        for (int i = 3; i >= 0; i--) begin
+            repeat (code[i]) press_key(2);  // incrementa até o dígito desejado
+            press_key(1);                    // confirma dígito
+        end
     endtask
 
     initial begin
-        // inicializa os botões sem serem pressionados (nivel alto)
-        KEY = 4'b1111
+        logic [3:0][3:0] init_pass;
+        logic [3:0][3:0] wrong_pass;
+        logic [3:0][3:0] new_pass;
 
-        // reset inicial
-        $$display("Aplicando reset inicial...");
-        KEY[0] = 0; #50; KEY[0] = 1; #50;
+        keys = '1;
+        keys[0] = 1'b0;
+        repeat (4) @(posedge clk);
+        keys[0] = 1'b1;
+        repeat (4) @(posedge clk);
 
-        // 1. ERRO DE SENHA (usando 1-0-0-0)
-        $display("Testando senha incorreta...");
-        apertar_botao(2); // KEY[2] incrementa D1
-        apertar_botao(1); // KEY[1] confirma D1
-        apertar_botao(1); // KEY[1] confirma D2 (D2 = 0)
-        apertar_botao(1); // KEY[1] confirma D3 (D3 = 0)
-        apertar_botao(1); // KEY[1] confirma D4 e tenta validar a senha
-        #1000; // tempo para os leds vermelhos acenderem
+        init_pass = dut.stored_pass;
+        wrong_pass = init_pass;
+        wrong_pass[0] = (init_pass[0] == 4'd9) ? 4'd0 : (init_pass[0] + 4'd1);
+        new_pass = {4'd1, 4'd2, 4'd3, 4'd4};
 
-        // 2. DESBLOQUEIO INICIAL (usando 0-0-0-0)
-        $display("Testando desbloqueio com 0000...");
-        KEY[0] = 0; #50; KEY[0] = 1; #50; // reset para limpar a tentativa anterior
+        // 1. senha incorreta -> deve acionar incorrect e voltar para EDIT1 após timer
+        enter_code(wrong_pass);
+        @(posedge clk);
+        assert (dut.incorrect && !dut.unlocked) else $error("Falha ao detectar senha incorreta");
+        wait (!dut.incorrect);
+        repeat (3) @(posedge clk);
 
-        apertar_botao(1); // KEY[1] confirma D1 (D1 = 0)
-        apertar_botao(1); // KEY[1] confirma D2 (D2 = 0)
-        apertar_botao(1); // KEY[1] confirma D3 (D3 = 0)
-        apertar_botao(1); // KEY[1] confirma D4 e tenta validar a senha
-        #200; // tempo para os leds verdes acenderem
+        // 2. senha correta -> deve desbloquear e voltar para EDIT1 após timer (5s)
+        enter_code(init_pass);
+        @(posedge clk);
+        assert (dut.unlocked && !dut.incorrect) else $error("Falha ao desbloquear com senha inicial");
+        wait (!dut.unlocked);
+        repeat (3) @(posedge clk);
 
-        // 3. TRANSIÇÃO PARA EDIÇÃO VIA KEY[1] (durante unlocked)
-        $display("Testando modo de edição de senha...");
-        apertar_botao(1);
+        // 3. desbloquear -> confirmar para entrar em edit_mode -> gravar nova senha
+        enter_code(init_pass);
+        @(posedge clk);
+        assert (dut.unlocked) else $error("Falha ao desbloquear antes da edicao");
 
-        // 4. GRAVAÇÃO DA NOVA SENHA (vamos salvar 2-2-2-2)
-        $display("Gravando nova senha 2222...");
-        apertar_botao(2); apertar_botao(2); apertar_botao(1); // sobe pra 2 e confirma D1
-        apertar_botao(2); apertar_botao(2); apertar_botao(1); // sobe pra 2 e confirma D2
-        apertar_botao(2); apertar_botao(2); apertar_botao(1); // sobe pra 2 e confirma D3
-        apertar_botao(2); apertar_botao(2); apertar_botao(1); // sobe pra 2, confirma D4 e salva
-        #200;
+        press_key(1);  // entra em NEW_PASS1
+        assert (dut.edit_mode) else $error("Falha ao entrar em edit_mode");
 
-        // 5. TESTE DE DESBLOQUEIO COM A NOVA SENHA
-        $display("Testando desbloqueio com a nova senha 2222...");
-        apertar_botao(2); apertar_botao(2); apertar_botao(1); 
-        apertar_botao(2); apertar_botao(2); apertar_botao(1);
-        apertar_botao(2); apertar_botao(2); apertar_botao(1);
-        apertar_botao(2); apertar_botao(2); apertar_botao(1);
-        #500; // cofre deve abrir novamente
+        enter_code(new_pass);
+        repeat (3) @(posedge clk);
+        assert (dut.stored_pass == new_pass) else $error("Nova senha nao foi salva: %h", dut.stored_pass);
 
-        $display("Fim do teste.");
-        $stop;
+        // 4. validar login com a nova senha salva
+        enter_code(new_pass);
+        @(posedge clk);
+        assert (dut.unlocked) else $error("Falha ao desbloquear com a nova senha");
+
+        $display("Simulacao concluida com sucesso.");
+        $finish;
     end
 endmodule
