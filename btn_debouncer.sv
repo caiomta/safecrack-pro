@@ -1,5 +1,5 @@
 module btn_debouncer #(
-    parameter int CLK_FREQ,
+    parameter int CLK_FREQ = 50_000_000,
     parameter int DEB_MS = 20
 ) (
     input logic clk, rstn, btn,
@@ -34,7 +34,7 @@ module btn_debouncer #(
                 deb_cnt <= '0;  // mantém o contador zerado
             end else begin  // caso mudou
                 if (deb_cnt == DEB_CYCLES-1) begin  // se o contador contou DEB_MS
-                    btn_stable <= btn_active[i];  // confirmar sinal estável
+                    btn_stable <= btn_active;  // confirmar sinal estável
                     deb_cnt <= '0;  // zerar contador
                 end else begin  // se ainda está contando
                     deb_cnt <= deb_cnt + 1'b1;  // incrementar

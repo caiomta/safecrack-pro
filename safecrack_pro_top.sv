@@ -13,19 +13,21 @@ module safecrack_pro_top #(
 
     logic confirm_pulse, save_digit, save_pass, unlocked, incorrect, edit_mode,
           match_pass, timer_done, timer_mode;
-    logic [1:0] selected_digit;
+    logic [1:0] selected_digit, digit_index;
     logic [3:0] digit_val;
     logic [3:0][3:0] entered_pass, stored_pass, display_digits;
-    logic [3:0][6:0] displays_out;
+	 
+	 assign digit_index = 2'd3 - selected_digit;
 
     always_ff @(posedge clk or negedge rstn) begin
         if (!rstn) entered_pass <= '0;  // resetar todos
-        else if (save_digit) entered_pass[selected_digit] <= digit_val;  // salvar o dígito confirmado
+		  else if (unlocked || incorrect || save_pass) entered_pass <= '0;
+        else if (save_digit) entered_pass[digit_index] <= digit_val;  // salvar o dígito confirmado
     end
 
     always_comb begin
-        display_digits = entered_pass;
-        display_digits[selected_digit] = digit_val;  // exibir dígito sendo modificado na sua posição
+	     display_digits = entered_pass;
+        display_digits[digit_index] = digit_val;  // exibir dígito sendo modificado na sua posição
     end
 
     assign timer_mode = unlocked;  // locked (0) -> 3s; unlocked (1) -> 5s
@@ -35,10 +37,8 @@ module safecrack_pro_top #(
         .CLK_FREQ(CLK_FREQ)
     ) u_input_handler (
         .clk(clk),
-        .rstn(rstn),
-        .prev_btn(keys[3]),
-        .next_btn(keys[2]),
-        .confirm_btn(keys[1]),
+		  .rstn(rstn),
+        .keys(keys[3:1]),
         .digit_val(digit_val),
         .confirm_pulse(confirm_pulse)
     );
@@ -61,7 +61,6 @@ module safecrack_pro_top #(
     // gerenciador/checador de senha
     password_manager u_password_manager (
         .clk(clk),
-        .rstn(rstn),
         .entered_pass(entered_pass),
         .save_pass(save_pass),
         .match_pass(match_pass),

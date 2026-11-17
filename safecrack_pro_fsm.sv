@@ -1,7 +1,8 @@
 module safecrack_pro_fsm (
     input logic clk, rstn, confirm_pulse, match_pass, timer_done,
     output logic save_digit, save_pass, unlocked, incorrect, edit_mode,
-    output logic [1:0] selected_digit
+    output logic [1:0] selected_digit,
+	 output logic [3:0][3:0] entered_pass
 );
     typedef enum logic [3:0] {
         EDIT1, EDIT2, EDIT3, EDIT4,
@@ -26,6 +27,7 @@ module safecrack_pro_fsm (
         case (current_state)
             EDIT1: begin
                 selected_digit = 2'd0;
+					 entered_pass = '0;
                 if (confirm_pulse) begin
                     save_digit = '1;
                     next_state = EDIT2;
