@@ -81,3 +81,5 @@ stateDiagram-v2
 
 > [!NOTE]
 > Ao aplicar o reset assícrono (`!rstn`) em qualquer estado, o programa retorna para `EDIT1`.
+
+## Módulos
