@@ -74,3 +74,27 @@ O módulo **`input_handler`** é responsável por integrar o tratamento de debou
 ### Password Manager
 
 ### Timer Counter
+
+O módulo **`timer_counter`** é responsável pelo controle de tempo dos feedbacks visuais do cofre digital. Ele contabiliza a duração exata dos estados de acesso concedido (LEDs verdes) e acesso negado (LEDs vermelhos), emitindo o sinal `timer_done` para notificar a FSM que o tempo de exibição foi concluído.
+
+#### Parâmetros Genéricos
+
+* **`CLK_FREQ`** (Padrão: `50_000_000` Hz): Frequência do clock de entrada. Na simulação, este parâmetro pode ser reduzido para acelerar a contagem do temporizador.
+
+#### Funcionalidades e Implementação
+
+- **Seleção Dinâmica do Intervalo de Tempo (`timer_mode`):** Calcula o número total de ciclos de clock necessários (`timer_cycles`) com base no modo selecionado:
+  - `timer_mode = 0`: Contagem de **3 segundos** (utilizado no estado de falha/senha incorreta).
+  - `timer_mode = 1`: Contagem de **5 segundos** (utilizado no estado de sucesso/desbloqueio).
+- **Habilitação e Controle de Contagem (`timer_enable`):** A contagem só é executada enquanto o sinal `timer_enable` estiver em nível alto (`1`). Caso o temporizador seja desativado (`timer_enable = 0`) ou o reset assíncrono seja acionado (`!rstn`), o contador `cnt` e a saída `timer_done` são zerados imediatamente.
+- **Geração do Sinal de Término (`timer_done`):** Enquanto a contagem estiver em andamento, `cnt` é incrementado a cada ciclo de clock. Ao atingir o limite `timer_cycles - 1`, o módulo ativa a saída `timer_done = 1`, sinalizando à FSM que o tempo estipulado encerrou e que o sistema pode retornar ao estado inicial.
+
+#### Interface do Módulo (E/S)
+
+| Porta | Tipo | Largura | Descrição |
+| :--- | :--- | :--- | :--- |
+| `clk` | Entrada | 1 bit | Clock principal do sistema (50 MHz) |
+| `rstn` | Entrada | 1 bit | Reset assíncrono ativo em nível baixo |
+| `timer_enable` | Entrada | 1 bit | Sinal de habilitação para iniciar a contagem |
+| `timer_mode` | Entrada | 1 bit | Seleciona o tempo de exibição (`0`: 3s, `1`: 5s) |
+| `timer_done` | Saída | 1 bit | Sinal de conclusão da contagem |
