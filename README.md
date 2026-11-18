@@ -41,3 +41,30 @@ A interação com o cofre ocorre através dos botões de pressão, dos displays 
 - **Senha Padrão:** Ao iniciar o programa na placa, o cofre é inicializado automaticamente com a senha padrão `0000`;
 - **Edição de Senha:** Ao pressionar o botão de confirmação enquanto o sistema está em estado desbloqueado, é possível inserir uma nova senha que será utilizada nas validações após a confirmação da edição. Se ocorrer reset durante o processo de edição, a senha anterior mantém-se.
 - **Reset:** O reset assíncrono não redefine a senha para a padrão após alterada.
+
+## Máquina de Estados Finita (FSM)
+
+```mermaid
+stateDiagram-v2
+    [*] --> EDIT1 : !rstn
+
+    EDIT1 --> EDIT2 : confirm_pulse
+    EDIT2 --> EDIT3 : confirm_pulse
+    EDIT3 --> EDIT4 : confirm_pulse
+    EDIT4 --> VALIDATE : confirm_pulse
+    
+    state VALIDATE <<choice>>
+    VALIDATE --> UNLOCKED : match_pass
+    VALIDATE --> INCORRECT : !match_pass
+
+    UNLOCKED --> EDIT1 : timer_done (5s)
+    INCORRECT --> EDIT1 : timer_done (3s)
+
+    UNLOCKED --> NEW_PASS1 : confirm_pulse 
+    NEW_PASS1 --> NEW_PASS2 : confirm_pulse 
+    NEW_PASS2 --> NEW_PASS3 : confirm_pulse 
+    NEW_PASS3 --> NEW_PASS4 : confirm_pulse 
+    NEW_PASS4 --> SAVE_PASS : confirm_pulse
+
+    SAVE_PASS --> EDIT1
+```
