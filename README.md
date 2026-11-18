@@ -68,3 +68,8 @@ stateDiagram-v2
 
     SAVE_PASS --> EDIT1
 ```
+
+> [!NOTE]
+> Se o diagrama não estiver sendo rendenizado pelo seu leitor de Markdown, [clique aqui para acessar o diagrama em PNG](./state-diagram.png).
+
+- **`EDIT1` a `EDIT4` (Digitação da Senha):** Estados de inserção dos 4 dígitos da senha para tentativa de acesso. Cada estado atribui o índice ativo a `selected_digit` (que vai de `2'd0` a `2'd3` e é convertido pelo driver do display para 1-4). A cada `confirm_pulse`, a FSM gera o pulso `save_digit` para registrar o dígito atual e avança para a posição seguinte. Ao confirmar o 4° dígito, avança para `VALIDATE`.
