@@ -11,3 +11,15 @@
 - **Natália Bourbon** ([GitHub](https://github.com/0guruzet))
 
 ## Módulos
+
+### Button Debouncer
+
+### Display Driver
+
+### Input Handler
+
+### Led Controller
+
+### Password Manager
+
+### Timer Counter
