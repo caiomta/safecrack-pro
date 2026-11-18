@@ -5,10 +5,10 @@
 
 ### Equipe Desenvolvedora
 
-- **Caio Tenório** ([GitHub](https://github.com/caiomta) | [LinkedIn](https://www.linkedin.com/in/caiomta))
-- **José Vinícius Albino** ([GitHub](https://github.com/jva2-cyber))
-- **Lucas de Oliveira** ([GitHub](https://github.com/nataliabourbon))
-- **Natália Bourbon** ([GitHub](https://github.com/0guruzet))
+- **Caio Tenório** (*[GitHub](https://github.com/caiomta)* | *[LinkedIn](https://www.linkedin.com/in/caiomta)*)
+- **José Vinícius Albino** (*[GitHub](https://github.com/jva2-cyber)*)
+- **Lucas de Oliveira** (*[GitHub](https://github.com/0guruzet)*)
+- **Natália Bourbon** (*[GitHub](https://github.com/nataliabourbon)*)
 
 ## Visão Geral
 
@@ -70,6 +70,6 @@ stateDiagram-v2
 ```
 
 > [!NOTE]
-> Se o diagrama não estiver sendo rendenizado pelo seu leitor de Markdown, [clique aqui para acessar o diagrama em PNG](./state-diagram.png).
+> Se o diagrama não estiver sendo rendenizado pelo seu leitor de Markdown, *[clique aqui para acessar o diagrama em PNG](./state-diagram.png)*.
 
 - **`EDIT1` a `EDIT4` (Digitação da Senha):** Estados de inserção dos 4 dígitos da senha para tentativa de acesso. Cada estado atribui o índice ativo a `selected_digit` (que vai de `2'd0` a `2'd3` e é convertido pelo driver do display para 1-4). A cada `confirm_pulse`, a FSM gera o pulso `save_digit` para registrar o dígito atual e avança para a posição seguinte. Ao confirmar o 4° dígito, avança para `VALIDATE`.
