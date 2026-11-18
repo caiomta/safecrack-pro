@@ -1,5 +1,5 @@
 module timer_counter #(
-    parameter int CLK_FREQ
+    parameter int CLK_FREQ = 50_000_000
 ) (
     input logic clk, rstn, timer_enable, timer_mode,  // 0: 3s, 1: 5s 
     output logic timer_done  // pulso ao terminar contagem
