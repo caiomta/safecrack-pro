@@ -42,7 +42,6 @@ module tb_safecrack_pro_top;
         begin
             keys[idx] = 1'b0;                 // Pressiona o botão
             repeat (30) @(posedge clk);       // Tempo suficiente para o debouncer registrar o clique
-            keys[idx] = 1 me;
             keys[idx] = 1'b1;                 // Solta o botão
             repeat (30) @(posedge clk);       // Tempo para o debouncer estabilizar solto
         end
