@@ -40,6 +40,10 @@ A interação com o cofre ocorre através dos botões de pressão, dos displays 
 - **Edição de Senha:** Ao pressionar o botão de confirmação enquanto o sistema está em estado desbloqueado, é possível inserir uma nova senha que será utilizada nas validações após a confirmação da edição. Se ocorrer reset durante o processo de edição, a senha anterior mantém-se.
 - **Reset:** O reset assíncrono não redefine a senha para a padrão após alterada.
 
+
+> [!NOTE]
+> O desenvolvimento do projeto foi baseado nos seguintes requisitos: [📄Documentação](docs/requisitos_projeto.pdf)
+
 ## Máquina de Estados Finita (FSM)
 
 ```mermaid
