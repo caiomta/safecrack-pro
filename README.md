@@ -169,7 +169,7 @@ O módulo `password_manager` é o componente central responsável pela memória 
 | `match_pass`   | Saída   | `logic` (1 bit)    | Flag de correspondência (`1` = senha correta, `0` = senha incorreta). |
 | `stored_pass`  | Saída   | `logic [3:0][3:0]` | Barramento de saída contendo a senha ativa na memória interna.          |
 
-#### Waveforms
+#### Waveforms do Módulo
 
 TODO: Waveforms
 
@@ -275,3 +275,13 @@ A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módu
 | `LEDG[8:0]`      | `PIN_E21, PIN_E22, PIN_E25, PIN_E24, PIN_H21, PIN_G20, PIN_G22, PIN_G21, PIN_F17`                                                                                  | **LEDs Verdes:** Acesos por 5s no Desbloqueio (`UNLOCKED`)                                   |
 | `LEDR[17:0]`     | `PIN_G19, PIN_F19, PIN_E19, PIN_F21, PIN_F18, PIN_E18, PIN_J19, PIN_H19, PIN_J17, PIN_G17, PIN_J15, PIN_H16, PIN_J16, PIN_H17, PIN_F15, PIN_G15, PIN_G16, PIN_H15` | **LEDs Vermelhos:** Acesos por 3s em caso de Erro (`LOCKED_FAIL`)                            |
 | `LEDG` + `LEDR` | Todos os LEDs acima acesos simultaneamente                                                                                                                         | **LED Amarelo (Combinação Verde+Vermelho):** Indica Modo de Edição de Senha (`SET_NEW_PASS`) |
+
+### Problemas Conhecidos
+
+Até o presente momento, apenas um problema foi detectado no programa.
+
+#### Modificação Residual do Dígito Inicial nos Estados de Feedback (UNLOCKED e INCORRECT):
+
+- **Descrição:** Durante a execução dos temporizadores de feedback visual (LEDs verdes acesos por 5s no estado UNLOCKED ou LEDs vermelhos acesos por 3s no estado INCORRECT), os botões de incremento e decremento do input_handler permanecem ativos.
+- **Sintoma:** O usuário consegue alterar o valor do primeiro dígito nos displays enquanto as luzes de feedback estão acesas. Se o botão de confirmação for pressionado durante esses estados, o primeiro dígito é simplesmente resetado para 0 (devido à lógica interna de limpeza do dígito ao confirmar).
+- **Impacto e Recuperação:** Trata-se de um comportamento estritamente cosmético/temporário que não afeta a segurança do cofre, a integridade da FSM ou a senha salva em memória. Assim que o temporizador expira (timer_done), a FSM transiciona de volta para o estado inicial (EDIT1) e a navegação/edição retorna ao seu funcionamento 100% normal.
