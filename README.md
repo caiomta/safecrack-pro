@@ -165,34 +165,11 @@ O módulo `password_manager` é o componente central responsável pela memória 
 | `match_pass`   | Saída   | `logic` (1 bit)    | Flag de correspondência (`1` = senha correta, `0` = senha incorreta). |
 | `stored_pass`  | Saída   | `logic [3:0][3:0]` | Barramento de saída contendo a senha ativa na memória interna.          |
 
-Para garantir 100% de cobertura funcional do módulo antes da integração no Top-Level, foi desenvolvido o testbench unitário `tb_password_manager.sv`. O ambiente simula o clock de 50 MHz (período de 20 ns) e injeta vetores de teste cobrindo todas as transições operacionais.
+#### Waveforms
 
-#### Cobertura dos Casos de Teste (Waveforms / Test Log)
+TODO: Waveforms
 
-```
-======================================================================
-[TESTE 1] Testando Estado Inicial e Reset...
--&gt; SUCESSO: Senha padrão 0000 pronta na memória!
-
-[TESTE 2] Testando Senha Incorreta (1234)...
--&gt; SUCESSO: match_pass = 0 (Senha incorreta rejeitada)
-
-[TESTE 3] Testando Senha Correta (0000)...
--&gt; SUCESSO: match_pass = 1 (Cofre liberado com a senha padrão)
-
-[TESTE 4] Gravando Nova Senha no Modo Edição (9876)...
--&gt; SUCESSO: Nova senha 9876 salva na memória!
-
-[TESTE 5] Validando Persistência da Memória e Troca de Senha...
--&gt; SUCESSO: Senha antiga 0000 agora é INVÁLIDA (match_pass = 0).
--&gt; SUCESSO: Nova senha 9876 ACEITA com sucesso (match_pass = 1).
-======================================================================
-   TODOS OS TESTES UNITÁRIOS DO PASSWORD MANAGER PASSARAM!
-======================================================================
-
-```
-
-#### Descrição das Waveforms do Testbench Unitário
+##### Descrição das Waveforms do Testbench Unitário
 
 1. **Inicialização &amp; Reset (0ns a 45ns):** `stored_pass` assume o valor `0000`. Com `entered_pass = 0000`, a flag `match_pass` vai instantaneamente para `1`.
 2. **Teste de Erro (45ns a 65ns):** Ao alterar `entered_pass` para `1234`, `match_pass` cai para `0` no mesmo ciclo combinacional.
@@ -265,7 +242,7 @@ O módulo **`timer_counter`** é responsável pelo controle de tempo dos feedbac
 
 #### Tabela Completa de Mapeamento de Pinos (Altera DE2-115)
 
-A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módulo Top-Level (`safecrack_pro_top.sv`) e os pinos físicos do FPGA Cyclone IV E na placa DE2-115.
+A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módulo Top-Level (`safecrack_pro_top.sv`) e os pinos físicos do FPGA Cyclone IV E na placa DE2-115. Também é possível analisar a pinagem pelo arquivo CSV exportado diretamente do Quartus, disponível *[aqui](./pin-assignments.csv)*.
 
 #### Clock e Controles Globais
 
