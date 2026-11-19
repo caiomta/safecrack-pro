@@ -236,9 +236,9 @@ O módulo **`timer_counter`** é responsável pelo controle de tempo dos feedbac
 | `timer_mode` | Entrada | 1 bit | Seleciona o tempo de exibição (`0`: 3s, `1`: 5s) |
 | `timer_done` | Saída | 1 bit | Sinal de conclusão da contagem |
 
-### Instruções de Compilação e Pinagem
+## Instruções de Compilação e Pinagem
 
-#### Passo a Passo para Compilação no Quartus Prime e Gravação na FPGA
+### Passo a Passo para Compilação no Quartus Prime e Gravação na FPGA
 
 1. **Abertura do Projeto:**
 
@@ -274,11 +274,11 @@ O módulo **`timer_counter`** é responsável pelo controle de tempo dos feedbac
 
 ---
 
-#### Tabela Completa de Mapeamento de Pinos (Altera DE2-115)
+### Tabela Completa de Mapeamento de Pinos (Altera DE2-115)
 
 A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módulo Top-Level (`safecrack_pro_top.sv`) e os pinos físicos do FPGA Cyclone IV E na placa DE2-115. Também é possível analisar a pinagem pelo arquivo CSV exportado diretamente do Quartus, disponível *[aqui](./pin-assignments.csv)*.
 
-#### Clock e Controles Globais
+### Clock e Controles Globais
 
 | Sinal Top-Level | Pino FPGA | Componente Hardware DE2-115                                    | Padrão I/O            |
 | --------------- | --------- | -------------------------------------------------------------- | --------------------- |
@@ -288,7 +288,7 @@ A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módu
 | `KEY[2]`        | `PIN_N21` | Botão Push-Button `KEY2` (Incrementa BCD `0` a `9`)            | 3.3-V LVTTL (Ativo 0) |
 | `KEY[3]`        | `PIN_R24` | Botão Push-Button `KEY3` (Decrementa BCD `9` a `0`)            | 3.3-V LVTTL (Ativo 0) |
 
-#### Displays de 7 Segmentos (Ânodo Comum - Ativos em Nível Baixo `0`)
+### Displays de 7 Segmentos (Ânodo Comum - Ativos em Nível Baixo `0`)
 
 | Barramento Display | Pinos FPGA (`G F E D C B A`)                                           | Descrição Visual                             |
 | ------------------ | ---------------------------------------------------------------------- | -------------------------------------------- |
@@ -298,7 +298,7 @@ A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módu
 | `HEX3[6:0]`        | `PIN_V21, PIN_U21, PIN_AB20, PIN_AA21, PIN_AD24, PIN_AF23, PIN_Y19`    | Dígito 4 da Combinação (BCD 4)               |
 | `HEX4[6:0]`        | `PIN_AB19, PIN_AA19, PIN_AG21, PIN_AH21, PIN_AE19, PIN_AF19, PIN_AE18` | Número do Dígito Ativo em Edição (`1` a `4`) |
 
-#### Barramentos de Feedback por LEDs
+### Barramentos de Feedback por LEDs
 
 | Sinal Top-Level  | Pinos FPGA                                                                                                                                                         | Estado / Função Visual                                                                       |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
@@ -306,12 +306,71 @@ A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módu
 | `LEDR[17:0]`     | `PIN_G19, PIN_F19, PIN_E19, PIN_F21, PIN_F18, PIN_E18, PIN_J19, PIN_H19, PIN_J17, PIN_G17, PIN_J15, PIN_H16, PIN_J16, PIN_H17, PIN_F15, PIN_G15, PIN_G16, PIN_H15` | **LEDs Vermelhos:** Acesos por 3s em caso de Erro (`LOCKED_FAIL`)                            |
 | `LEDG` + `LEDR` | Todos os LEDs acima acesos simultaneamente                                                                                                                         | **LED Amarelo (Combinação Verde+Vermelho):** Indica Modo de Edição de Senha (`SET_NEW_PASS`) |
 
-### Problemas Conhecidos
+## Problemas Conhecidos
 
 Até o presente momento, apenas um problema foi detectado no programa.
 
-#### Modificação Residual do Dígito Inicial nos Estados de Feedback (UNLOCKED e INCORRECT):
+### Modificação Residual do Dígito Inicial nos Estados de Feedback (UNLOCKED e INCORRECT):
 
 - **Descrição:** Durante a execução dos temporizadores de feedback visual (LEDs verdes acesos por 5s no estado UNLOCKED ou LEDs vermelhos acesos por 3s no estado INCORRECT), os botões de incremento e decremento do input_handler permanecem ativos.
 - **Sintoma:** O usuário consegue alterar o valor do primeiro dígito nos displays enquanto as luzes de feedback estão acesas. Se o botão de confirmação for pressionado durante esses estados, o primeiro dígito é simplesmente resetado para 0 (devido à lógica interna de limpeza do dígito ao confirmar).
 - **Impacto e Recuperação:** Trata-se de um comportamento estritamente cosmético/temporário que não afeta a segurança do cofre, a integridade da FSM ou a senha salva em memória. Assim que o temporizador expira (timer_done), a FSM transiciona de volta para o estado inicial (EDIT1) e a navegação/edição retorna ao seu funcionamento 100% normal.
+
+## Waveforms e Output do Testbench Top-Level
+
+> [!NOTE]
+> O PDF contendo as waveforms é acessível *[aqui](./docs/waveforms.pdf)*.
+
+### Output
+
+```txt
+# =========================================================
+#    INICIANDO TESTBENCH DO SAFECRACK PRO TOP
+# =========================================================
+# 
+# [TB] Passo 0: Aplicando Reset (KEY0)...
+# [TB] Senha Inicial em Memoria: 0000
+# 
+# [TB] Passo 1: Digitando Senha Incorreta (0001)...
+#    [TB] Digitando posiÃ§Ã£o [3] = 0...
+#    [TB] Digitando posiÃ§Ã£o [2] = 0...
+#    [TB] Digitando posiÃ§Ã£o [1] = 0...
+#    [TB] Digitando posiÃ§Ã£o [0] = 1...
+# [TB SUCCESS] Feedback INCORRECT ativado! (LEDs Vermelhos)
+# [TB] Aguardando fim do temporizador de erro (3s)...
+# [TB] Retornou ao estado inicial EDIT1.
+# 
+# [TB] Passo 2: Digitando Senha Correta (0000)...
+#    [TB] Digitando posiÃ§Ã£o [3] = 0...
+#    [TB] Digitando posiÃ§Ã£o [2] = 0...
+#    [TB] Digitando posiÃ§Ã£o [1] = 0...
+#    [TB] Digitando posiÃ§Ã£o [0] = 0...
+# [TB SUCCESS] Cofre DESBLOQUEADO com sucesso! (LEDs Verdes)
+# [TB] Aguardando fim do temporizador de desbloqueio (5s)...
+# [TB] Retornou ao estado inicial EDIT1.
+# 
+# [TB] Passo 3: Desbloqueando para entrar no Modo de Edicao de Senha...
+#    [TB] Digitando posiÃ§Ã£o [3] = 0...
+#    [TB] Digitando posiÃ§Ã£o [2] = 0...
+#    [TB] Digitando posiÃ§Ã£o [1] = 0...
+#    [TB] Digitando posiÃ§Ã£o [0] = 0...
+# [TB] Pressionando confirmacao para entrar em Modo Edit (NEW_PASS1)...
+# [TB SUCCESS] Entrou no Modo de EdiÃ§Ã£o de Senha (edit_mode = 1)!
+# [TB] Digitando Nova Senha (1234)...
+#    [TB] Digitando posiÃ§Ã£o [3] = 1...
+#    [TB] Digitando posiÃ§Ã£o [2] = 2...
+#    [TB] Digitando posiÃ§Ã£o [1] = 3...
+#    [TB] Digitando posiÃ§Ã£o [0] = 4...
+# [TB SUCCESS] Nova Senha salva em memoria! Guardado: 1234
+# 
+# [TB] Passo 4: Testando login com a Nova Senha Salva (1234)...
+#    [TB] Digitando posiÃ§Ã£o [3] = 1...
+#    [TB] Digitando posiÃ§Ã£o [2] = 2...
+#    [TB] Digitando posiÃ§Ã£o [1] = 3...
+#    [TB] Digitando posiÃ§Ã£o [0] = 4...
+# [TB SUCCESS] Desbloqueado com a NOVA SENHA!
+# 
+# =========================================================
+#    SIMULACAO CONCLUIDA COM SUCESSO! TODOS OS TESTES PASSARAM.
+# =========================================================
+```
