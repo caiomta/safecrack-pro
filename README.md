@@ -149,6 +149,37 @@ O módulo **`input_handler`** é responsável por integrar o tratamento de debou
 
 ### Password Manager
 
+O módulo `password_manager` é o componente central responsável pela memória e comparação de credenciais no **SafeCrack Pro**. Ele gerencia o armazenamento persistente da senha em registradores BCD de 4 dígitos (4 bits por dígito), realiza a comparação em tempo real com a entrada do usuário e executa a atualização de senha em tempo de execução (*runtime*) quando solicitado pela FSM principal.
+
+#### Comportamento e Regras de Negócio
+
+1. **Inicialização (Power-On):** Na energização da FPGA, o registrador interno `internal_pass` é carregado com a senha padrão de fábrica `0000` (`'{4'd0, 4'd0, 4'd0, 4'd0}`).
+2. **Preservação de Memória no Reset de Interface:** O sinal de reset do sistema (`reset_pass`) reinicia a interface visual e o estado da FSM, **mas não altera a senha armazenada em `internal_pass`**. Isso garante que um reset acidental não desconfigure a senha definida pelo usuário.
+3. **Escrita em Runtime (`save_pass`):** A atualização da senha só ocorre mediante um pulso síncrono no sinal `save_pass` (gerado pela FSM ao confirmar o 4º dígito no Modo de Edição `SET_NEW_PASS`). Nesse instante, o valor presente em `entered_pass` é copiado para `internal_pass`.
+4. **Comparação Combinacional (`match_pass`):** A verificação da senha é puramente combinacional: `match_pass` é elevado para nível lógico alto (`1`) instantaneamente quando `entered_pass == internal_pass`.
+
+#### Interface de Sinais do Módulo
+
+| Sinal          | Direção | Largura            | Descrição                                                               |
+| -------------- | ------- | ------------------ | ----------------------------------------------------------------------- |
+| `clk`          | Entrada | `logic` (1 bit)    | Clock principal do sistema (50 MHz).                                    |
+| `reset_pass`   | Entrada | `logic` (1 bit)    | Sinal de reset síncrono/assíncrono da interface (ativo em `1`).         |
+| `entered_pass` | Entrada | `logic [3:0][3:0]` | Vetor de 4 dígitos BCD (4x4 bits) com a combinação digitada.            |
+| `save_pass`    | Entrada | `logic` (1 bit)    | Pulso de habilitação de escrita enviado pela FSM no Modo Edição.        |
+| `match_pass`   | Saída   | `logic` (1 bit)    | Flag de correspondência (`1` = senha correta, `0` = senha incorreta). |
+| `stored_pass`  | Saída   | `logic [3:0][3:0]` | Barramento de saída contendo a senha ativa na memória interna.          |
+
+#### Waveforms
+
+TODO: Waveforms
+
+##### Descrição das Waveforms do Testbench Unitário
+
+1. **Inicialização &amp; Reset (0ns a 45ns):** `stored_pass` assume o valor `0000`. Com `entered_pass = 0000`, a flag `match_pass` vai instantaneamente para `1`.
+2. **Teste de Erro (45ns a 65ns):** Ao alterar `entered_pass` para `1234`, `match_pass` cai para `0` no mesmo ciclo combinacional.
+3. **Escrita de Nova Senha (65ns a 95ns):** `entered_pass` recebe `9876`. Um pulso de 1 ciclo em `save_pass` na borda de descida do clock grava o valor. Na borda de subida seguinte, `stored_pass` transita para `9876`.
+4. **Revalidação de Segurança (95ns a 135ns):** Injeta-se a senha antiga `0000`; `match_pass` responde com `0`. Em seguida, aplica-se `9876` e `match_pass` retorna para `1`, confirmando que a alteração foi concluída com sucesso.
+
 ### Timer Counter
 
 O módulo **`timer_counter`** é responsável pelo controle de tempo dos feedbacks visuais do cofre digital. Ele contabiliza a duração exata dos estados de acesso concedido (LEDs verdes) e acesso negado (LEDs vermelhos), emitindo o sinal `timer_done` para notificar a FSM que o tempo de exibição foi concluído.
@@ -174,3 +205,73 @@ O módulo **`timer_counter`** é responsável pelo controle de tempo dos feedbac
 | `timer_enable` | Entrada | 1 bit | Sinal de habilitação para iniciar a contagem |
 | `timer_mode` | Entrada | 1 bit | Seleciona o tempo de exibição (`0`: 3s, `1`: 5s) |
 | `timer_done` | Saída | 1 bit | Sinal de conclusão da contagem |
+
+### Instruções de Compilação e Pinagem
+
+#### Passo a Passo para Compilação no Quartus Prime e Gravação na FPGA
+
+1. **Abertura do Projeto:**
+
+  * Abra o **Quartus Prime / II**.
+  * Acesse **File &gt; Open Project** e selecione o arquivo do projeto na pasta raiz do repositório (`safecrack_pro_top.qpf`).
+  * Garanta que a entidade principal (*Top-Level Entity*) esteja definida como `safecrack_pro_top`.
+2. **Seleção do Dispositivo FPGA:**
+
+  * Acesse **Assignments &gt; Device**.
+  * Família: **Cyclone IV E**.
+  * Modelo do chip: **`EP4CE115F29C7`** (Altera DE2-115).
+3. **Verificação dos Arquivos do Projeto:**
+
+  * Certifique-se de que todos os módulos RTL (`safecrack_pro_top.sv`, `safecrack_pro_fsm.sv`, `password_manager.sv`, `input_handler.sv`, `timer_counter.sv`, `display_driver.sv`, `led_controller.sv`) estejam presentes na hierarquia.
+  * *Nota:* Os arquivos contidos na pasta `tb/` não devem ser incluídos na compilação do Quartus.
+4. **Atribuição de Pinos (Pin Assignments):**
+
+  * Importe as atribuições de pinos via **Assignments &gt; Import Assignments** selecionando o arquivo `.qsf` do repositório, ou abra o **Pin Planner** (`Ctrl + Shift + N`) e confirme os mapeamentos conforme a tabela de mapeamento de pinos abaixo.
+5. **Compilação Completa (Full Compilation):**
+
+  * Execute a compilação clicando duas vezes em **Start Compilation** no painel *Tasks* (ou atalho `Ctrl + L`).
+  * Verifique se o compilador encerra com 0 erros, gerando o arquivo gravável `output_files/safecrack_pro_top.sof`.
+6. **Gravação via JTAG (Quartus Programmer):**
+
+  * Conecte o cabo USB-Blaster entre a porta USB do computador e a porta **USB-Blaster** da placa DE2-115.
+  * Conecte a fonte de alimentação 12V e confirme que a chave `SW19` está na posição **RUN**. Ligue a placa no botão vermelho **Power**.
+  * Abra **Tools &gt; Programmer**.
+  * Clique em **Hardware Setup...** e selecione **USB-Blaster [USB-0]**.
+  * Garanta que o modo esteja configurado para **JTAG**.
+  * Se o arquivo não estiver carregado, clique em **Add File...** e selecione `output_files/safecrack_pro_top.sof`.
+  * Marque a caixa **Program/Configure** na linha do dispositivo `EP4CE115` e clique em **Start**.
+  * Aguarde o progresso atingir **100% (Successful)**.
+
+---
+
+#### Tabela Completa de Mapeamento de Pinos (Altera DE2-115)
+
+A tabela a seguir apresenta a atribuição exata entre as portas de E/S do módulo Top-Level (`safecrack_pro_top.sv`) e os pinos físicos do FPGA Cyclone IV E na placa DE2-115. Também é possível analisar a pinagem pelo arquivo CSV exportado diretamente do Quartus, disponível *[aqui](./pin-assignments.csv)*.
+
+#### Clock e Controles Globais
+
+| Sinal Top-Level | Pino FPGA | Componente Hardware DE2-115                                    | Padrão I/O            |
+| --------------- | --------- | -------------------------------------------------------------- | --------------------- |
+| `CLOCK_50`      | `PIN_Y2`  | Oscilador de Clock Integrado 50 MHz                            | 3.3-V LVTTL           |
+| `KEY[0]`        | `PIN_M23` | Botão Push-Button `KEY0` (Reset da Interface / Digitação)      | 3.3-V LVTTL (Ativo 0) |
+| `KEY[1]`        | `PIN_M21` | Botão Push-Button `KEY1` (Confirma Dígito / Entra Modo Edição) | 3.3-V LVTTL (Ativo 0) |
+| `KEY[2]`        | `PIN_N21` | Botão Push-Button `KEY2` (Incrementa BCD `0` a `9`)            | 3.3-V LVTTL (Ativo 0) |
+| `KEY[3]`        | `PIN_R24` | Botão Push-Button `KEY3` (Decrementa BCD `9` a `0`)            | 3.3-V LVTTL (Ativo 0) |
+
+#### Displays de 7 Segmentos (Ânodo Comum - Ativos em Nível Baixo `0`)
+
+| Barramento Display | Pinos FPGA (`G F E D C B A`)                                           | Descrição Visual                             |
+| ------------------ | ---------------------------------------------------------------------- | -------------------------------------------- |
+| `HEX0[6:0]`        | `PIN_H22, PIN_J22, PIN_L25, PIN_L26, PIN_E17, PIN_F22, PIN_G18`        | Dígito 1 da Combinação (BCD 1)               |
+| `HEX1[6:0]`        | `PIN_U24, PIN_U23, PIN_S25, PIN_W26, PIN_W27, PIN_Y26, PIN_W22`        | Dígito 2 da Combinação (BCD 2)               |
+| `HEX2[6:0]`        | `PIN_W24, PIN_U22, PIN_Y25, PIN_C21, PIN_B21, PIN_R22, PIN_R23`        | Dígito 3 da Combinação (BCD 3)               |
+| `HEX3[6:0]`        | `PIN_V21, PIN_U21, PIN_AB20, PIN_AA21, PIN_AD24, PIN_AF23, PIN_Y19`    | Dígito 4 da Combinação (BCD 4)               |
+| `HEX4[6:0]`        | `PIN_AB19, PIN_AA19, PIN_AG21, PIN_AH21, PIN_AE19, PIN_AF19, PIN_AE18` | Número do Dígito Ativo em Edição (`1` a `4`) |
+
+#### Barramentos de Feedback por LEDs
+
+| Sinal Top-Level  | Pinos FPGA                                                                                                                                                         | Estado / Função Visual                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `LEDG[8:0]`      | `PIN_E21, PIN_E22, PIN_E25, PIN_E24, PIN_H21, PIN_G20, PIN_G22, PIN_G21, PIN_F17`                                                                                  | **LEDs Verdes:** Acesos por 5s no Desbloqueio (`UNLOCKED`)                                   |
+| `LEDR[17:0]`     | `PIN_G19, PIN_F19, PIN_E19, PIN_F21, PIN_F18, PIN_E18, PIN_J19, PIN_H19, PIN_J17, PIN_G17, PIN_J15, PIN_H16, PIN_J16, PIN_H17, PIN_F15, PIN_G15, PIN_G16, PIN_H15` | **LEDs Vermelhos:** Acesos por 3s em caso de Erro (`LOCKED_FAIL`)                            |
+| `LEDG` + `LEDR` | Todos os LEDs acima acesos simultaneamente                                                                                                                         | **LED Amarelo (Combinação Verde+Vermelho):** Indica Modo de Edição de Senha (`SET_NEW_PASS`) |
