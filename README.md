@@ -209,16 +209,6 @@ O módulo `password_manager` é o componente central responsável pela memória 
 | `match_pass`   | Saída   | `logic` (1 bit)    | Flag de correspondência (`1` = senha correta, `0` = senha incorreta). |
 | `stored_pass`  | Saída   | `logic [3:0][3:0]` | Barramento de saída contendo a senha ativa na memória interna.          |
 
-#### Waveforms do Módulo
-
-TODO: Waveforms
-
-##### Descrição das Waveforms do Testbench Unitário
-
-1. **Inicialização &amp; Reset (0ns a 45ns):** `stored_pass` assume o valor `0000`. Com `entered_pass = 0000`, a flag `match_pass` vai instantaneamente para `1`.
-2. **Teste de Erro (45ns a 65ns):** Ao alterar `entered_pass` para `1234`, `match_pass` cai para `0` no mesmo ciclo combinacional.
-3. **Escrita de Nova Senha (65ns a 95ns):** `entered_pass` recebe `9876`. Um pulso de 1 ciclo em `save_pass` na borda de descida do clock grava o valor. Na borda de subida seguinte, `stored_pass` transita para `9876`.
-4. **Revalidação de Segurança (95ns a 135ns):** Injeta-se a senha antiga `0000`; `match_pass` responde com `0`. Em seguida, aplica-se `9876` e `match_pass` retorna para `1`, confirmando que a alteração foi concluída com sucesso.
 
 ### Timer Counter
 
