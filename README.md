@@ -115,6 +115,26 @@ O módulo **`btn_debouncer`** é responsável por sanitizar os sinais assíncron
 
 ### Display Driver
 
+O módulo `display_driver.sv` é a unidade combinacional responsável pela conversão dos valores numéricos BCD (0 a 9) para a codificação de 7 segmentos compatível com a placa Altera DE2-115 [64]. Ele controla os displays `HEX0` a `HEX3` para a exibição da combinação digitada e o display `HEX4` para indicar visualmente qual dígito está selecionado no momento para edição.
+
+#### Comportamento e Regras de Decodificação
+1. **Lógica de Ânodo Comum (Ativa em Nível Baixo `0`):** Os displays da DE2-115 acendem os segmentos quando o sinal correspondente está em nível lógico `0` [64]. O vetor de 7 bits mapeia a ordem `[6:0]` para os segmentos `[g, f, e, d, c, b, a]`.
+2. **Exibição da Combinação (`HEX0` a `HEX3`):** Converte continuamente cada um dos 4 dígitos BCD (`entered_pass[3:0][3:0]`) nos respectivos padrões visuais dos 4 displays de combinação.
+3. **Indicação do Dígito Ativo (`HEX4`):** Decodifica o índice do dígito atualmente em foco (`active_digit`), somando `+1` para exibir na tela o valor numérico de `1` a `4` no display `HEX4`.
+
+#### Interface do Módulo (E/S)
+
+| Sinal | Direção | Largura | Descrição |
+| :--- | :--- | :--- | :--- |
+| `entered_pass` | Entrada | `logic [3:0][3:0]` | Matriz com os 4 dígitos BCD da combinação atual. |
+| `active_digit` | Entrada | `logic [1:0]` | Índice do dígito selecionado em edição (`0` a `3`). |
+| `HEX0` | Saída | `logic [6:0]` | Sinais de 7 segmentos para o Dígito 1 da combinação. |
+| `HEX1` | Saída | `logic [6:0]` | Sinais de 7 segmentos para o Dígito 2 da combinação. |
+| `HEX2` | Saída | `logic [6:0]` | Sinais de 7 segmentos para o Dígito 3 da combinação. |
+| `HEX3` | Saída | `logic [6:0]` | Sinais de 7 segmentos para o Dígito 4 da combinação. |
+| `HEX4` | Saída | `logic [6:0]` | Sinais de 7 segmentos para a indicação do Dígito Ativo (`1` a `4`). |
+
+
 ### Input Handler
 
 O módulo **`input_handler`** é responsável por integrar o tratamento de debounce para os três botões de interação (`keys[2:0]`), propagar o pulso de confirmação para a FSM e controlar o valor numérico do dígito que está sendo editado no momento (`digit_val`), aplicando a lógica de incremento, decremento e *wrap-around* (0 a 9).
@@ -147,6 +167,26 @@ O módulo **`input_handler`** é responsável por integrar o tratamento de debou
 
 ### Led Controller
 
+O módulo `led_controller.sv` é a unidade responsável pelo gerenciamento do feedback visual luminoso na placa Altera DE2-115. Ele decodifica os estados correntes da FSM principal (`safecrack_pro_fsm`) e aciona os barramentos de LEDs verdes (`LEDG`) e vermelhos (`LEDR`) de acordo com as regras de operação e os temporizadores do cofre.
+
+#### Comportamento e Regras de Sinalização Visual
+1. **Feedback de Sucesso (`UNLOCKED`):** Quando o cofre é liberado com a senha correta, o módulo aciona simultaneamente os 9 LEDs verdes da placa (`LEDG[8:0] = 9'b1_1111_1111`) pelo período de 5 segundos controlado pelo temporizador. Os LEDs vermelhos permanecem totalmente apagados.
+2. **Feedback de Falha (`LOCKED_FAIL`):** Quando uma tentativa incorreta é inserida, o módulo aciona simultaneamente os 18 LEDs vermelhos da placa (`LEDR[17:0] = 18'b11_1111_1111_1111_1111`) pelo tempo de 3 segundos. Os LEDs verdes permanecem apagados.
+3. **Sinalização de Modo Edição (`SET_NEW_PASS`):** Durante a fase de alteração dinâmica de senha, o controlador aciona simultaneamente os LEDs verdes e vermelhos, produzindo uma sinalização combinada (amarelo) para alertar o usuário sobre o modo de configuração.
+4. **Estado de Repouso / Edição Normal:** Durante a navegação padrão dígito a dígito, todos os LEDs de feedback permanecem desligados.
+
+#### Interface do Módulo (E/S)
+
+| Sinal | Direção | Largura | Descrição |
+| :--- | :--- | :--- | :--- |
+| `clk` | Entrada | `logic` (1 bit) | Clock principal do sistema (50 MHz). |
+| `rst_n` | Entrada | `logic` (1 bit) | Reset global do sistema (ativo em nível baixo `0`). |
+| `state_unlocked` | Entrada | `logic` (1 bit) | Flag da FSM indicando sucesso na abertura (ativado por 5s). |
+| `state_fail` | Entrada | `logic` (1 bit) | Flag da FSM indicando falha de verificação (ativado por 3s). |
+| `state_new_pass` | Entrada | `logic` (1 bit) | Flag da FSM indicando o Modo de Troca/Edição de Senha. |
+| `LEDG` | Saída | `logic [8:0]` | Barramento de acionamento dos 9 LEDs verdes (DE2-115). |
+| `LEDR` | Saída | `logic [17:0]` | Barramento de acionamento dos 18 LEDs vermelhos (DE2-115). |
+
 ### Password Manager
 
 O módulo `password_manager` é o componente central responsável pela memória e comparação de credenciais no **SafeCrack Pro**. Ele gerencia o armazenamento persistente da senha em registradores BCD de 4 dígitos (4 bits por dígito), realiza a comparação em tempo real com a entrada do usuário e executa a atualização de senha em tempo de execução (*runtime*) quando solicitado pela FSM principal.
@@ -158,7 +198,7 @@ O módulo `password_manager` é o componente central responsável pela memória 
 3. **Escrita em Runtime (`save_pass`):** A atualização da senha só ocorre mediante um pulso síncrono no sinal `save_pass` (gerado pela FSM ao confirmar o 4º dígito no Modo de Edição `SET_NEW_PASS`). Nesse instante, o valor presente em `entered_pass` é copiado para `internal_pass`.
 4. **Comparação Combinacional (`match_pass`):** A verificação da senha é puramente combinacional: `match_pass` é elevado para nível lógico alto (`1`) instantaneamente quando `entered_pass == internal_pass`.
 
-#### Interface de Sinais do Módulo
+#### Interface do Módulo (E/S)
 
 | Sinal          | Direção | Largura            | Descrição                                                               |
 | -------------- | ------- | ------------------ | ----------------------------------------------------------------------- |
